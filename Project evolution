@@ -1,0 +1,37 @@
+1. Taxonomy change
+In the initial phase, the model attempted a dual-class detection task (Retail-items and Empty Gap) on a highly restricted, unbalanced data split. Through iterative testing, this layout was found to introduce significant noise due to intense bounding-box overlaps on dense store shelves.
+
+*Class Consolidation: We completely deprecated the Retail-items class, converting the task into a laser-focused, single-class problem (Empty Gap). Items are now treated naturally as background canvas, drastically reducing localization errors.
+
+*Data Split Restructuring: The initial 67-image baseline suffered from extreme validation volatility. We expanded the dataset via targeted geometric and environmental augmentations (exposure, blur, noise) to build a robust pool of 228 images distributed across a statistically sound 75% Train / 13% Valid / 12% Test split.
+
+
+2. Model Training Adjustments
+
+*Hyperparameter Optimization: Training was extended from 100 to 200 epochs using yolov11n.pt to allow the network ample time to generalize features across the augmented data.
+
+*Loss Function Normalization: Manual loss weight overrides (box=10.0, cls=2.0) were removed. Everything was then trained using YOLO11’s native bounding-box regression tuning, leading to far more stable convergence curves.
+
+
+3. Evaluation Reality Check
+Metric Baseline     	    Original Configuration	          Final Optimized Configuration (v8)
+Total Images Pool	           67 base images	                      228 augmented images
+Validation Pool Size	       11 images (78 instances)	            29 images (189 instances)
+mAP@50	                     0.9938 (Overfitted)	                0.4931 (Generalized)
+
+While the initial report cited near-perfect metrics (≈99% mAP), after further investigation revealed that this was actually a severe overfitting scenario on a very small validation pool (11 images).
+And although the new 49.3% mAP baseline appears lower on paper, it represents an honest, more robust model. Real-world checks confirms that the new model generalizes better on shelf layouts.
+
+
+4. Updated pipeline/mechanism
+
+[Old Pipeline]  YOLO -> Spatial "Neighbor" Logic -> CLIP Classification -> Ollama LLM -> Output
+                                      VS.
+[New Pipeline]  YOLO -> Empty Gap Pixel Mapping -> Planogram / Golden Reference Database Match -> Ollama LLM -> Output
+
+The Problem with the Old Logic: The spatial "neighbor logic" combined with CLIP classification and local Ollama LLM processing was highly inconsistent and fragile. It relied on absolute horizontal/vertical alignment parameters that fractured if an image was shot at a slight angle or different pespective. The local LLM also brought up the problem of hallucinations when determining items for gaps, which resulted into unreasonable answers
+
+The New Solution (Digital Twin Match): We implemented a Digital Twin mechanism paired with a hardcoded dummy database acting as a "Golden Reference" (Planogram).
+-The system maps out the coordinates of detected empty gaps.
+-It cross-references these empty coordinate zones directly against the coordinates of where products should be according to the store's reference layout database.
+-This reduces the amount unreasonable answers from the neighbour guessing. The system now delivers answers that more correct or are at least to not for from the correct answer
