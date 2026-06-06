@@ -1,0 +1,6 @@
+# Ignore the virtual environment
+ai_stable_env/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
