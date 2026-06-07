@@ -1,0 +1,58 @@
+PLANOGRAM_REPOSITORIES = {
+   "Aisle 1 - Pet Care & Pet Foods (3x6 Grid)": {
+        "matrix": {
+            "Row 1 (Top)": ["Pedigree Adult 2kg", "Purina ONE Dry Cat", "Kittens Choice Mix", "Meow Mix Chicken", "Iams Small Breed", "Fancy Feast Salmon"],
+            "Row 2 (Middle)": ["Whiskas Jelly Pouches 12x", "Sheba Gold Wet 8x", "Felix Party Mix", "Gourmet Gold Paté", "Dine Delicious", "Dreamies Treats"],
+            "Row 3 (Bottom)": ["Hill's Science Diet 4kg", "Royal Canin Size 4kg", "Pro Plan Puppy 12kg", "Bulk Canned Beef", "Bulk Canned Tuna", "Bulk Canned Chicken"]
+        }
+    },
+    "Aisle 2 - Snacks & Sodas (5x3 Grid)": {
+        "matrix": {
+            "Row 1 (Top)": ["Lay's Paprika Blue", "Lay's Paprika Blue", "Lay's Naturel Yellow", "Lay's Naturel Yellow", "Doritos Nacho Cheese", "Doritos Sweet Chili"],
+            "Row 2": ["Oreo Original", "Oreo Original", "Oreo Double Cream", "Milka Choco Biscuits", "McVitie's Digestive"],
+            "Row 3": ["Pringles Sour Cream Green", "Pringles Sour Cream Green", "Pringles Original Red", "Pringles Original Red", "Pringles Paprika Orange", "Pringles Paprika Orange", "Pringles Hot & Spicy", "Pringles Cheesy Cheese"],
+            "Row 4": ["M&M's Peanut Yellow", "M&M's Choco Brown", "Maltesers XL Pack", "Snickers 5-pack", "Mars Bar Multipack"],
+            "Row 5 (Bottom)": ["Coca-Cola 1.5L", "Coca-Cola Zero 1.5L", "Fanta Orange 1.5L", "Fanta Exotic 1.5L", "Sprite Lemon 1.5L", "Sprite Zero 1.5L"]
+        }
+    },
+    "Aisle 3 - Baking & Breakfast (4 Flexible Rows)": {
+        "matrix": {
+            0: ["All-Purpose Flour 2kg", "Granulated Sugar 2kg", "Brown Sugar 1kg", "Dr. Oetker Mix", "Betty Crocker Cake"],
+            1: ["Baking Powder", "Yeast Pack", "Vanilla Extract", "Dr. Oetker Icing", "Betty Crocker Frosting", "Mini Marshmallows", "Chocolate Chips"],
+            2: ["Quaker Oats Jumbo 1kg", "Weetabix Original", "Cheerios Honey Nut", "Special K Cereal", "Kellogg's Muesli"],
+            3: ["Clear Honey Jar 500g", "Manuka Honey 250g", "Bonne Maman Jam", "Smucker's Strawberry", "Nutella Jar 400g", "Lotus Biscoff"]
+        }
+    },
+
+    "Aisle 4 - Pasta, Rice & Sauces (4x6 Grid)": {
+        "matrix": {
+            "Row 1 (Top)": ["Barilla Spaghetti n.5", "Barilla Spaghetti n.5", "Soubry Volkoren Pasta", "Grand Italia Penne", "Panzani Macaroni", "Boni Tagliatelle"],
+            "Row 2": ["Miracoli Tomato 3-Pack", "Miracoli Bolognese", "Bertolli Basilico Sauce", "Barilla Pesto Genovese", "Sacla Tomato Pesto", "Albert Heijn Arrabbiata"],
+            "Row 3": ["Bosto Basmati Rice 4x", "Uncle Ben's Long Grain", "Uncle Ben's Jasmine", "Boni Risotto Rice", "Suzi Wan Rice Vermicelli", "Suzi Wan Soy Sauce"],
+            "Row 4 (Bottom)": ["Heinz Tomato Soup XL", "Heinz Lens Soup", "Unox Erwtensoep Can", "Unox Tomatensoep", "Campbell's Mushroom Can", "Knorr Chicken Bouillon"]
+        }
+    },
+    
+    "Aisle 5 - Coffee & Tea Essentials (3x6 Grid)": {
+        "matrix": {
+            "Row 1 (Top)": ["Douwe Egberts Aroma Rood", "Douwe Egberts Aroma Rood", "L'OR Espresso Onyx", "Nespresso Arpeggio Sleeve", "Lavazza Qualita Oro", "Illy Blend Moka"],
+            "Row 2 (Middle)": ["Senseo Classic Pods 36x", "Senseo Strong Pods 36x", "Starbucks Caramel Pods", "Nescafe Gold Instant", "Boni Filter Coffee 500g", "Lotus Speculoos Coffee Syrup"],
+            "Row 3 (Bottom)": ["Lipton Yellow Label 100x", "Twinings Earl Grey Box", "Pickwick Green Tea Lemon", "Zonnatura Chamomile Tea", "Albert Heijn Mint Bags", "Matcha Powder Organic"]
+        }
+    },
+
+    "Aisle 6 - Condiments & Sauces (Flexible Rows)": {
+        "matrix": {
+            0: ["Devos Lemmens Mayonnaise", "Devos Lemmens Tartaar", "Calve Sladip Sauce", "Heinz Ketchup 800ml", "Heinz Ketchup 800ml", "Heinz Mustard Mild"],
+            1: ["Amora Dijon Mosterd", "Maille Honey Mustard", "Tabasco Original 60ml", "Sriracha Hot Chili Sauce", "Samurai Sauce Squeeze"],
+            2: ["Gouda's Glorie Fritessaus", "Hellmann's Real Mayo", "Remia BBQ Sauce XL", "Albert Heijn Ceasar Dressing", "Vandemoortele Vinaigrette"]
+        }
+    },
+
+    "Colruyt - Biscuit Aisle (Flexible Rows)": {
+        "matrix": {
+            "Row 1 (Top)": ["AH Blue Choco Box", "Boni Red Choco Box", "Delacre Prestige Gold", "Delacre Prestige Gold", "Lu Prince Chocolate"],
+            "Row 2 (Bottom)": ["Cote dOr Pasta Red", "Chocopasta White Label", "Blue Tin Spread Pack", "Lotus Speculoos Red", "Boni Vanilla Biscuits", "Choco Snack Pack", "Extra Cookie Box"]
+        }
+    }
+}

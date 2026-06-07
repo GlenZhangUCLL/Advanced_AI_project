@@ -6,8 +6,9 @@ import torch
 from PIL import Image
 from ultralytics import YOLO
 import ollama  # Import the official local library directly
+from planograms import PLANOGRAM_REPOSITORIES
 
-# --- 1. SETUP, INITIALIZATION & CLIENTS ---
+# --- 1. SETUP & INITIALIZATION --- 
 device = "mps" if torch.backends.mps.is_available() else "cpu"
 print(f"Using device: {device}")
 
@@ -15,41 +16,10 @@ print(f"Using device: {device}")
 yolo_model = YOLO('best-2.pt') 
 
 # --- 2. MULTI-PLANOGRAM REGISTRY ---
-PLANOGRAM_REPOSITORIES = {
-   "Aisle 1 - Pet Care & Pet Foods (3x6 Grid)": {
-        "matrix": {
-            "Row 1 (Top)": ["Pedigree Adult 2kg", "Purina ONE Dry Cat", "Kittens Choice Mix", "Meow Mix Chicken", "Iams Small Breed", "Fancy Feast Salmon"],
-            "Row 2 (Middle)": ["Whiskas Jelly Pouches 12x", "Sheba Gold Wet 8x", "Felix Party Mix", "Gourmet Gold Paté", "Dine Delicious", "Dreamies Treats"],
-            "Row 3 (Bottom)": ["Hill's Science Diet 4kg", "Royal Canin Size 4kg", "Pro Plan Puppy 12kg", "Bulk Canned Beef", "Bulk Canned Tuna", "Nandog Pet Beds"]
-        }
-    },
-    "Aisle 2 - Snacks & Sodas (5x3 Grid)": {
-        "matrix": {
-            "Row 1 (Top)": ["Lay's Paprika Blue", "Lay's Paprika Blue", "Lay's Naturel Yellow", "Lay's Naturel Yellow", "Doritos Nacho Cheese", "Doritos Sweet Chili"],
-            "Row 2": ["Oreo Original", "Oreo Original", "Oreo Double Cream", "Milka Choco Biscuits", "McVitie's Digestive"],
-            "Row 3": ["Pringles Sour Cream Green", "Pringles Sour Cream Green", "Pringles Original Red", "Pringles Original Red", "Pringles Paprika Orange", "Pringles Paprika Orange", "Pringles Hot & Spicy", "Pringles Cheesy Cheese"],
-            "Row 4": ["M&M's Peanut Yellow", "M&M's Choco Brown", "Maltesers XL Pack", "Snickers 5-pack", "Mars Bar Multipack"],
-            "Row 5 (Bottom)": ["Coca-Cola 1.5L", "Coca-Cola Zero 1.5L", "Fanta Orange 1.5L", "Fanta Exotic 1.5L", "Sprite Lemon 1.5L", "Sprite Zero 1.5L"]
-        }
-    },
-    "Aisle 3 - Baking & Breakfast (4 Flexible Rows)": {
-        "matrix": {
-            0: ["All-Purpose Flour 2kg", "Granulated Sugar 2kg", "Brown Sugar 1kg", "Dr. Oetker Mix", "Betty Crocker Cake"],
-            1: ["Baking Powder", "Yeast Pack", "Vanilla Extract", "Dr. Oetker Icing", "Betty Crocker Frosting", "Mini Marshmallows", "Chocolate Chips"],
-            2: ["Quaker Oats Jumbo 1kg", "Weetabix Original", "Cheerios Honey Nut", "Special K Cereal", "Kellogg's Muesli"],
-            3: ["Clear Honey Jar 500g", "Manuka Honey 250g", "Bonne Maman Jam", "Smucker's Strawberry", "Nutella Jar 400g", "Lotus Biscoff"]
-        }
-    },
+# --- IMPORT DUMMY DATABASE VIA planograms.py ---
 
-    "Colruyt - Biscuit Aisle (Flexible Rows)": {
-        "matrix": {
-            "Row 1 (Top)": ["AH Blue Choco Box", "Boni Red Choco Box", "Delacre Prestige Gold", "Delacre Prestige Gold", "Lu Prince Chocolate"],
-            "Row 2 (Bottom)": ["Cote dOr Pasta Red", "Chocopasta White Label", "Blue Tin Spread Pack", "Lotus Speculoos Red", "Boni Vanilla Biscuits", "Choco Snack Pack", "Extra Cookie Box"]
-        }
-    }
-}
 
-# --- 3. ADVANCED LLM REASONING LAYER ---
+# --- 3. LLM REASONING LAYER ---
 def query_llm_spatial_reasoning(planogram_template, normalized_gaps, selected_name):
     """
     Local spatial processing engine. Receives pre-calculated math 
@@ -97,52 +67,119 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
     if len(gaps) == 0:
         return "No gaps detected! Shelf is perfectly stocked.", []
 
+    # === CALIBRATION STEP: DEFINE ACTIVE PRODUCT ZONE ===
+    # Adjust these percentages to perfectly frame where products start and end
+    SHELF_X_MIN = 0.12  # Ignoring the left metal pillar/aisle space (starts at 12% width)
+    SHELF_X_MAX = 0.95  # Ignoring the rightmost edge frame (ends at 95% width)
+    
+    # Vertical clipping to account for ceiling/floor dead space or aisle signage
+    SHELF_Y_MIN = 0.15  # Adjust this if top shelf starts lower down the image frame
+    SHELF_Y_MAX = 0.88  # Adjust this if bottom shelf stops before the image frame base
+    
+    active_x1 = img_width * SHELF_X_MIN
+    active_x2 = img_width * SHELF_X_MAX
+    active_shelf_width = active_x2 - active_x1
+
+    # Calculate physical bounding box for vertical shelf space
+    active_y1 = img_height * SHELF_Y_MIN
+    active_y2 = img_height * SHELF_Y_MAX
+    active_shelf_height = active_y2 - active_y1
+
     gap_data_raw = []
+    
     for gap in gaps:
         gx1, gy1, gx2, gy2 = gap.xyxy[0].cpu().numpy()
+        box_w = gx2 - gx1
         xc = (gx1 + gx2) / 2
         yc = (gy1 + gy2) / 2
         
-        gap_data_raw.append({
-            'xc': xc,
-            'yc': yc,
-            'coords': (int(gx1), int(gy1), int(gx2), int(gy2))
-        })
+        # Estimate row item counts to calculate expected slot width dynamically
+        # UPDATED: Evaluated against active shelf height window
+        norm_y = (yc - active_y1) / active_shelf_height
+        norm_y = max(0.0, min(norm_y, 0.999))
+        
+        row_logical_idx = max(0, min(int(norm_y * total_rows), total_rows - 1))
+        assigned_row_name = row_keys[row_logical_idx]
+        row_items_count = len(matrix[assigned_row_name])
+        
+        # Base slot width on the active shelf area, not the raw canvas width
+        expected_slot_width = active_shelf_width / row_items_count
+        
+        # If the bounding box is wide enough to contain 2 adjacent empty spaces
+        if box_w > (expected_slot_width * 1.5):
+            half_w = box_w / 2
+            # Programmatically generate Left Gap Component
+            gap_data_raw.append({
+                'xc': gx1 + (half_w / 2),
+                'yc': yc,
+                'coords': (int(gx1), int(gy1), int(gx1 + half_w), int(gy2))
+            })
+            # Programmatically generate Right Gap Component
+            gap_data_raw.append({
+                'xc': gx1 + half_w + (half_w / 2),
+                'yc': yc,
+                'coords': (int(gx1 + half_w), int(gy1), int(gx2), int(gy2))
+            })
+        else:
+            gap_data_raw.append({
+                'xc': xc,
+                'yc': yc,
+                'coords': (int(gx1), int(gy1), int(gx2), int(gy2))
+            })
 
-    normalized_gap_strings = []
-    final_ordered_gaps = []
-    
-    # Sort top-to-bottom so Gap 1 is always the highest up on the physical shelf
+    # Two-pass row sorting
     gap_data_raw.sort(key=lambda g: g['yc'])
+    row_threshold = img_height * 0.10
+    grouped_rows = []
     
-    for idx, gap in enumerate(gap_data_raw, start=1):
-        norm_x = gap['xc'] / img_width
-        norm_y = gap['yc'] / img_height
+    for gap in gap_data_raw:
+        placed = False
+        for physical_row in grouped_rows:
+            if abs(gap['yc'] - physical_row[0]['yc']) < row_threshold:
+                physical_row.append(gap)
+                placed = True
+                break
+        if not placed:
+            grouped_rows.append([gap])
+            
+    grouped_rows.sort(key=lambda r: sum(g['yc'] for g in r) / len(r))
+    
+    for physical_row in grouped_rows:
+        physical_row.sort(key=lambda g: g['xc'])
         
-        # 1. Deterministic Vertical Row Assignment
-        row_logical_index = int(norm_y * total_rows)
-        row_logical_index = max(0, min(row_logical_index, total_rows - 1))
-        assigned_row_name = row_keys[row_logical_index]
-        
-        # 2. Deterministic Horizontal Array Position Mapping
-        row_items = matrix[assigned_row_name]
-        row_items_count = len(row_items)
-        
-        idx_in_row = int(norm_x * row_items_count)
-        idx_in_row = max(0, min(idx_in_row, row_items_count - 1))
-        
-        # Extract the exact product string directly via Python array indexing
-        target_missing_product = row_items[idx_in_row]
-        
-        gap['assigned_id'] = idx
-        final_ordered_gaps.append(gap)
-        
-        # Pass the pre-computed final answer into the LLM payload manifest
-        normalized_gap_strings.append(
-            f"- Gap ID {idx}: Located on **{assigned_row_name}**.\n"
-            f"  Horizontal Scan Percentage: {norm_x:.2f}\n"
-            f"  Matched Target Missing Item: {target_missing_product}"
-        )
+    final_ordered_gaps = []
+    normalized_gap_strings = []
+    global_idx = 1
+    
+    for physical_row in grouped_rows:
+        for gap in physical_row:
+            # === NORMALIZE Y AGAINST ACTIVE ZONE ===
+            norm_y = (gap['yc'] - active_y1) / active_shelf_height
+            norm_y = max(0.0, min(norm_y, 0.999)) # Clamp between 0.0 and 1.0 boundary
+            
+            # === NORMALIZE X AGAINST ACTIVE ZONE ===
+            norm_x = (gap['xc'] - active_x1) / active_shelf_width
+            norm_x = max(0.0, min(norm_x, 0.999)) # Clamp between 0.0 and 1.0 boundary
+            
+            row_logical_index = max(0, min(int(norm_y * total_rows), total_rows - 1))
+            assigned_row_name = row_keys[row_logical_index]
+            
+            row_items = matrix[assigned_row_name]
+            row_items_count = len(row_items)
+            
+            idx_in_row = max(0, min(int(norm_x * row_items_count), row_items_count - 1))
+            target_missing_product = row_items[idx_in_row]
+            
+            gap['assigned_id'] = global_idx
+            final_ordered_gaps.append(gap)
+            
+            normalized_gap_strings.append(
+                f"- Gap ID {global_idx}: Located on **{assigned_row_name}**.\n"
+                f"  Horizontal Scan Percentage: {norm_x:.2f}\n"
+                f"  Vertical Scan Percentage: {norm_y:.2f}\n"
+                f"  Matched Target Missing Item: {target_missing_product}"
+            )
+            global_idx += 1
     
     gaps_manifest = "\n".join(normalized_gap_strings)
     matrix_manifest = str(matrix)
@@ -150,7 +187,6 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
     ai_audit_report = query_llm_spatial_reasoning(matrix_manifest, gaps_manifest, selected_planogram_name)
     
     return ai_audit_report, final_ordered_gaps
-
 
 # --- 5. GRADIO INTERFACE EXECUTION ---
 def audit_interface(input_img, selected_planogram):
