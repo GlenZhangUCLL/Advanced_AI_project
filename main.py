@@ -23,7 +23,7 @@ yolo_model = YOLO('best-2.pt')
 def query_llm_spatial_reasoning(planogram_template, normalized_gaps, selected_name):
     """
     Local spatial processing engine. Receives pre-calculated math 
-    from Python to guarantee 100% accurate product reporting.
+    from Python to guarantee more accurate product reporting.
     """
     prompt = f"""
 You are an expert Retail Space Automation AI analyzing a supermarket shelf via Computer Vision data.
