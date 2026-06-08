@@ -168,10 +168,17 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
             gap['assigned_id'] = global_idx
             final_ordered_gaps.append(gap)
             
-            # Let Python build the mechanical list with 100% stability
+            # === DYNAMIC 1-INDEXING FOR NUMERIC ROWS ===
+            # If the JSON key is a raw digit (like "0"), convert it to a readable 1-indexed number
+            if str(assigned_row_name).isdigit():
+                display_row_name = str(int(assigned_row_name) + 1)
+            else:
+                display_row_name = assigned_row_name
+            
+            # Build the mechanical list using the newly adjusted display name
             python_markdown_gaps.append(
                 f"### 🚨 GAP {global_idx} DETECTED\n"
-                f"- **Row Name**: {assigned_row_name}\n"
+                f"- **Row Name**: {display_row_name}\n"
                 f"- **Missing Product**: `{target_missing_product}`\n"
             )
             global_idx += 1
