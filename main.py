@@ -6,7 +6,7 @@ import torch
 from PIL import Image
 from ultralytics import YOLO
 import ollama  # Import the official local library directly
-from planograms import PLANOGRAM_REPOSITORIES
+import json
 
 # --- 1. SETUP & INITIALIZATION --- 
 device = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -17,7 +17,12 @@ yolo_model = YOLO('best-2.pt')
 
 # --- 2. MULTI-PLANOGRAM REGISTRY ---
 # --- IMPORT DUMMY DATABASE VIA planograms.py ---
-
+# Load the planogram registry dynamically from JSON
+def load_planograms():
+    with open("planograms.json", "r") as f:  # Changed "file" to "r"
+        return json.load(f)
+    
+PLANOGRAM_REPOSITORIES = load_planograms()
 
 # --- 3. LLM REASONING LAYER ---
 def query_llm_spatial_reasoning(planogram_template, normalized_gaps, selected_name):
