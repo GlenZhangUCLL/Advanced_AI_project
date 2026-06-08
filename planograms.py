@@ -36,7 +36,7 @@ PLANOGRAM_REPOSITORIES = {
     "Aisle 5 - Coffee & Tea Essentials (3x6 Grid)": {
         "matrix": {
             "Row 1 (Top)": ["Douwe Egberts Aroma Rood", "Douwe Egberts Aroma Rood", "L'OR Espresso Onyx", "Nespresso Arpeggio Sleeve", "Lavazza Qualita Oro", "Illy Blend Moka"],
-            "Row 2 (Middle)": ["Senseo Classic Pods 36x", "Senseo Strong Pods 36x", "Starbucks Caramel Pods", "Nescafe Gold Instant", "Boni Filter Coffee 500g", "Lotus Speculoos Coffee Syrup"],
+            "Row 2 (Middle)": ["Senseo Classic Pods 36x", "Senseo Strong Pods 36x", "Starbucks Caramel Pods", "Nescafe Gold Instant", "Nescafe Latte Macchiato", "Lotus Speculoos Coffee Syrup"],
             "Row 3 (Bottom)": ["Lipton Yellow Label 100x", "Twinings Earl Grey Box", "Pickwick Green Tea Lemon", "Zonnatura Chamomile Tea", "Albert Heijn Mint Bags", "Matcha Powder Organic"]
         }
     },

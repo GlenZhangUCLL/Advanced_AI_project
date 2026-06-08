@@ -68,11 +68,9 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
         return "No gaps detected! Shelf is perfectly stocked.", []
 
     # === CALIBRATION STEP: DEFINE ACTIVE PRODUCT ZONE ===
-    # Adjust these percentages to perfectly frame where products start and end
     SHELF_X_MIN = 0.12  # Ignoring the left metal pillar/aisle space (starts at 12% width)
     SHELF_X_MAX = 0.95  # Ignoring the rightmost edge frame (ends at 95% width)
     
-    # Vertical clipping to account for ceiling/floor dead space or aisle signage
     SHELF_Y_MIN = 0.15  # Adjust this if top shelf starts lower down the image frame
     SHELF_Y_MAX = 0.88  # Adjust this if bottom shelf stops before the image frame base
     
@@ -80,7 +78,6 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
     active_x2 = img_width * SHELF_X_MAX
     active_shelf_width = active_x2 - active_x1
 
-    # Calculate physical bounding box for vertical shelf space
     active_y1 = img_height * SHELF_Y_MIN
     active_y2 = img_height * SHELF_Y_MAX
     active_shelf_height = active_y2 - active_y1
@@ -94,7 +91,6 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
         yc = (gy1 + gy2) / 2
         
         # Estimate row item counts to calculate expected slot width dynamically
-        # UPDATED: Evaluated against active shelf height window
         norm_y = (yc - active_y1) / active_shelf_height
         norm_y = max(0.0, min(norm_y, 0.999))
         
@@ -105,22 +101,26 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
         # Base slot width on the active shelf area, not the raw canvas width
         expected_slot_width = active_shelf_width / row_items_count
         
-        # If the bounding box is wide enough to contain 2 adjacent empty spaces
-        if box_w > (expected_slot_width * 1.5):
-            half_w = box_w / 2
-            # Programmatically generate Left Gap Component
-            gap_data_raw.append({
-                'xc': gx1 + (half_w / 2),
-                'yc': yc,
-                'coords': (int(gx1), int(gy1), int(gx1 + half_w), int(gy2))
-            })
-            # Programmatically generate Right Gap Component
-            gap_data_raw.append({
-                'xc': gx1 + half_w + (half_w / 2),
-                'yc': yc,
-                'coords': (int(gx1 + half_w), int(gy1), int(gx2), int(gy2))
-            })
+        # === DYNAMIC CONTEXT-AWARE GAP SPLITTING ===
+        # Calculate exactly how many sequential product slots this single bounding box spans
+        num_slots_spanned = max(1, round(box_w / expected_slot_width))
+        
+        if num_slots_spanned > 1:
+            # Segment the large bounding box into proportional slices
+            slice_w = box_w / num_slots_spanned
+            
+            for i in range(num_slots_spanned):
+                seg_x1 = gx1 + (i * slice_w)
+                seg_x2 = seg_x1 + slice_w
+                seg_xc = (seg_x1 + seg_x2) / 2
+                
+                gap_data_raw.append({
+                    'xc': seg_xc,
+                    'yc': yc,
+                    'coords': (int(seg_x1), int(gy1), int(seg_x2), int(gy2))
+                })
         else:
+            # Standard single item gap baseline
             gap_data_raw.append({
                 'xc': xc,
                 'yc': yc,
@@ -155,11 +155,11 @@ def process_shelf_grid_with_ai(gaps, img_height, img_width, selected_planogram_n
         for gap in physical_row:
             # === NORMALIZE Y AGAINST ACTIVE ZONE ===
             norm_y = (gap['yc'] - active_y1) / active_shelf_height
-            norm_y = max(0.0, min(norm_y, 0.999)) # Clamp between 0.0 and 1.0 boundary
+            norm_y = max(0.0, min(norm_y, 0.999))
             
             # === NORMALIZE X AGAINST ACTIVE ZONE ===
             norm_x = (gap['xc'] - active_x1) / active_shelf_width
-            norm_x = max(0.0, min(norm_x, 0.999)) # Clamp between 0.0 and 1.0 boundary
+            norm_x = max(0.0, min(norm_x, 0.999))
             
             row_logical_index = max(0, min(int(norm_y * total_rows), total_rows - 1))
             assigned_row_name = row_keys[row_logical_index]
@@ -200,7 +200,6 @@ def audit_interface(input_img, selected_planogram):
         augment=True      
     )[0]
 
-    # === DEBUG PRINT BLOCK ===
     print("\n--- RAW YOLO DETECTIONS FOUND ---")
     for idx, b in enumerate(results.boxes):
         c = int(b.cls)
